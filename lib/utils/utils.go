@@ -11,3 +11,13 @@ func OrderFiles(a []string, f func(a, b string) int) {
 		}
 	}
 }
+
+func GetOutputLength(files []string) int {
+	var count int
+
+	for i := 0; i < len(files)-1; i++ {
+		count+=len(files[i])
+	}
+	println(count + (len(files)-1)*2)
+	return count + (len(files)-1)*2
+}
