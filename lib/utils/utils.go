@@ -41,10 +41,8 @@ func PrintFiles(files []string) {
 		}
 	} else  {
 		maxCols := maxCols(width,files)
-		// println(maxCols)
 
 		l:= (len(files)+maxCols)/maxCols
-		// println(l)
 		lin := ""
 		var lastf string
 		for i, file := range files {
@@ -66,17 +64,13 @@ func PrintFiles(files []string) {
 					lin = "\033[1B"
 				}
 				fmt.Printf("%s\033[%dG %v", lin, curColAt, file)
-				// fmt.Printf("%v - %d doit mafficher en %v avec %d gap\n", file, i, lin, curColAt)
 			}
 			if len(file) > len(lastf) {
 				temp = len(file) + 2
 
 			}
 			lastf = file
-				// fmt.Printf("\n%v", curColAt)
-			// else {
-				// lin = "\033[1B"
-			// }
+
 				curLinAt++
 		}
 		fmt.Printf("\033[%vB",l-curLinAt)
