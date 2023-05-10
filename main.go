@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"my-ls-1/lib/fs"
+	"my-ls-1/lib/utils"
+	"os"
 )
 
 func main() {
@@ -11,6 +12,8 @@ func main() {
 
 	fsys := os.DirFS(args[0])
 
-	fs.List(fsys)
+	files := fs.List(fsys,fs.NormalOutput)
+
+	utils.PrintFiles(files)
 	fmt.Println()
 }
