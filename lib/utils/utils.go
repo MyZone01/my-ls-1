@@ -39,53 +39,49 @@ func PrintFiles(files []string) {
 			curColAt += len(file) + 2
 
 		}
-	} else  {
-		maxCols := maxCols(width,files)
+	} else {
+		maxCols := maxCols(width, files)
 
-		l:= (len(files)+maxCols)/maxCols
+		l := (len(files) + maxCols) / maxCols
 		lin := ""
 		var lastf string
 		for i, file := range files {
-			if strings.Contains(file," ") {
-				file = fmt.Sprintf("'%v'",file)
+			if strings.Contains(file, " ") {
+				file = fmt.Sprintf("'%v'", file)
 			}
 			if i < l {
-				fmt.Printf(" %v", file)
+				fmt.Printf("%v", file)
 				if i < l-1 {
 					fmt.Println()
 				}
 			} else {
-				if i % l == 0 {
-					lin = fmt.Sprintf("\033[%vA",l-1)
+				if i%l == 0 {
+					lin = fmt.Sprintf("\033[%vA", l-1)
 					curColAt = temp + nCol
 					curLinAt = 1
 					nCol += temp
 				} else {
 					lin = "\033[1B"
 				}
-				fmt.Printf("%s\033[%dG %v", lin, curColAt, file)
+				fmt.Printf("%s\033[%dG%v", lin, curColAt+1, file)
 			}
 			if len(file) > len(lastf) {
 				temp = len(file) + 2
 
 			}
 			lastf = file
-
-				curLinAt++
+			curLinAt++
 		}
-		fmt.Printf("\033[%vB",l-curLinAt)
-		fmt.Println()
-
+		fmt.Printf("\033[%vB", l-curLinAt+1)
 	}
 }
 
-func maxCols(width int,files[]string) int{
+func maxCols(width int, files []string) int {
 	var lw int
 	for _, v := range files {
-		if len(v)>lw {
-			lw=len(v)
+		if len(v) > lw {
+			lw = len(v)
 		}
 	}
 	return width / lw
 }
-	 

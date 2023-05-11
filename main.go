@@ -12,7 +12,7 @@ func main() {
 
 	fsys := os.DirFS(args[0])
 
-	files := fs.List(fsys,fs.NormalOutput)
+	files := fs.List(fsys, fs.NormalOutput)
 
 	utils.PrintFiles(files)
 	fmt.Println()
