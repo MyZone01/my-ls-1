@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"my-ls-1/lib/fs"
 	"my-ls-1/lib/utils"
 	"os"
 )
@@ -10,10 +9,10 @@ import (
 func main() {
 	args := os.Args[1:]
 
-	fsys := os.DirFS(args[0])
+	f := os.DirFS(args[0])
 
-	files := fs.List(fsys, fs.NormalOutput)
-
-	utils.PrintFiles(files)
+	// files := fsys.List(f, fsys.NormalOutput)
+	utils.RecursivePrint(f)
+	// utils.PrintFiles(files)
 	fmt.Println()
 }

@@ -19,5 +19,4 @@ func GetTerminalWidth() int {
 		uintptr(unsafe.Pointer(&winsize)))
 
 	return int(winsize.Col)
-	// return 117
 }
