@@ -3,7 +3,6 @@ package my_ls
 import (
 	"math"
 	"os"
-	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -58,7 +57,7 @@ func GetColNumber(width int, files []os.FileInfo) int {
 			biggestFileName = len(file.Name())
 		}
 	}
-	return int(math.Floor(float64(width) / float64(biggestFileName + 2)))
+	return int(math.Floor(float64(width) / float64(biggestFileName+2)))
 }
 
 func GetOutputLength(files []os.FileInfo) int {
@@ -69,17 +68,12 @@ func GetOutputLength(files []os.FileInfo) int {
 	return outputLength + (len(files)-1)*2
 }
 
-func joinPath(elements ...string) string {
-	// Join the elements using "/"
-	path := strings.Join(elements, "/")
-
-	// Replace consecutive slashes with a single slash
-	path = strings.ReplaceAll(path, "//", "/")
-
-	// Remove trailing slash if present
-	if strings.HasSuffix(path, "/") && len(path) > 1 {
-		path = path[:len(path)-1]
+func OrderFiles(files []os.FileInfo, f func(a, b string) int) {
+	for i := 0; i < len(files); i++ {
+		for j := i + 1; j < len(files); j++ {
+			if f(files[i].Name(), files[j].Name()) == 1 {
+				files[i], files[j] = files[j], files[i]
+			}
+		}
 	}
-
-	return path
 }
