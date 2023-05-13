@@ -51,7 +51,7 @@ func GetTerminalWidth() int {
 	return int(winsize.Col)
 }
 
-func GetColNumber(width int, files []os.DirEntry) int {
+func GetColNumber(width int, files []os.FileInfo) int {
 	var biggestFileName int
 	for _, file := range files {
 		if len(file.Name()) > biggestFileName {
@@ -61,7 +61,7 @@ func GetColNumber(width int, files []os.DirEntry) int {
 	return int(math.Floor(float64(width) / float64(biggestFileName + 2)))
 }
 
-func GetOutputLength(files []os.DirEntry) int {
+func GetOutputLength(files []os.FileInfo) int {
 	var outputLength int
 	for _, file := range files {
 		outputLength += len(file.Name())

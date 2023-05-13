@@ -16,10 +16,29 @@ var (
 
 func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTime bool) {
 	// Read the directory entries
-	entries, err := os.ReadDir(dirPath)
+	_dir, err := os.Open(dirPath)
 	if err != nil {
 		fmt.Println("Error reading directory:", err)
 		return
+	}
+
+	entries, err := _dir.Readdir(-1)
+	if err != nil {
+		fmt.Println("Error reading directory:", err)
+		return
+	}
+	if showAll {
+		parentFolderInfos, err := os.Lstat(parentFolderName)
+		if err != nil {
+			fmt.Println("Error getting file info:", err)
+		}
+		entries = append([]os.FileInfo{parentFolderInfos}, entries...)
+
+		currentFolderInfos, err := os.Lstat(currentFolderName)
+		if err != nil {
+			fmt.Println("Error getting file info:", err)
+		}
+		entries = append([]os.FileInfo{currentFolderInfos}, entries...)
 	}
 
 	width := GetTerminalWidth()
@@ -38,11 +57,6 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 		entries = reverseEntries(entries)
 	}
 
-	if showAll {
-		printDotDir(longFormat)
-		curColAt = 8
-	}
-
 	// Print the entries
 	for i, entry := range entries {
 		fileName := entry.Name()
@@ -53,15 +67,8 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 		}
 
 		if longFormat {
-			// Get the file/directory infos
-			entryInfo, err := entry.Info()
-			if err != nil {
-				fmt.Println("Get the file infos")
-				return
-			}
-
 			// Print long listing format
-			printLongFormat(fileName, entryInfo)
+			printLongFormat(entry)
 		} else {
 			// Print the file/directory name
 			fileName := entry.Name()
@@ -92,9 +99,9 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 }
 
 // Reverse the entries
-func reverseEntries(entries []os.DirEntry) []os.DirEntry {
+func reverseEntries(entries []os.FileInfo) []os.FileInfo {
 	length := len(entries)
-	reversed := make([]os.DirEntry, length)
+	reversed := make([]os.FileInfo, length)
 
 	for i, entry := range entries {
 		reversed[length-i-1] = entry
@@ -103,27 +110,8 @@ func reverseEntries(entries []os.DirEntry) []os.DirEntry {
 	return reversed
 }
 
-func printDotDir(longFormat bool) {
-	if longFormat {
-		currentFolderInfos, err := os.Stat(currentFolderName)
-		if err != nil {
-			fmt.Println("Error getting file info:", err)
-		}
-		printLongFormat(currentFolderName, currentFolderInfos)
-
-		parentFolderInfos, err := os.Stat(parentFolderName)
-		if err != nil {
-			fmt.Println("Error getting file info:", err)
-		}
-
-		printLongFormat(parentFolderName, parentFolderInfos)
-	} else {
-		fmt.Printf("%s  %s   ", currentFolderName, parentFolderName)
-	}
-}
-
 // SortByModificationTime sorts an array of fs.DirEntry objects by modification time.
-func sortByModificationTime(entries []os.DirEntry) {
+func sortByModificationTime(entries []os.FileInfo) {
 	n := len(entries)
 	swapped := true
 
@@ -131,10 +119,7 @@ func sortByModificationTime(entries []os.DirEntry) {
 		swapped = false
 		for i := 1; i < n; i++ {
 			// Compare modification time of current entry and previous entry
-			currentInfo, _ := entries[i].Info()
-			previousInfo, _ := entries[i-1].Info()
-
-			if currentInfo.ModTime().Before(previousInfo.ModTime()) {
+			if entries[i].ModTime().Before(entries[i-1].ModTime()) {
 				// Swap entries if the current one is older
 				entries[i], entries[i-1] = entries[i-1], entries[i]
 				swapped = true
@@ -172,7 +157,10 @@ func printShortFormat(fileName string, i int, l int, lin string, curColAt int, t
 	return curLinAt
 }
 
-func printLongFormat(name string, entry os.FileInfo) {
+func printLongFormat(entry os.FileInfo) {
+	//Get the file name
+	name := entry.Name()
+
 	// Get the file/directory mode and permissions
 	permissions := entry.Mode().String()
 
@@ -200,5 +188,5 @@ func printLongFormat(name string, entry os.FileInfo) {
 	}
 
 	// Print the long format
-	fmt.Printf("%s %d %s %s %8d %s %s\n", permissions, numHardLinks, owner.Name, group.Name, size, modTime, name)
+	fmt.Printf("%s %2d %s %s %5d %s %s\n", permissions, numHardLinks, owner.Name, group.Name, size, modTime, name)
 }
