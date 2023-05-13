@@ -19,7 +19,7 @@ func main() {
 			if entry.IsDir() {
 				if !strings.HasPrefix(entry.Name(), ".") || (strings.HasPrefix(entry.Name(), ".") && (showAll || len(entry.Name()) == 1)) {
 					if entry.Name() != "." {
-						fmt.Println("./" + dirPath + "/" + path + ":")
+						fmt.Println(dirPath + "/" + path + ":")
 					} else {
 						fmt.Println(dirPath + ":")
 					}
