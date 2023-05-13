@@ -3,6 +3,7 @@ package my_ls
 import (
 	"math"
 	"os"
+	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -69,9 +70,20 @@ func GetOutputLength(files []os.FileInfo) int {
 }
 
 func OrderFiles(files []os.FileInfo, f func(a, b string) int) {
+	var currentFileName, nextFileName string
+
 	for i := 0; i < len(files); i++ {
+		currentFileName = files[i].Name()
 		for j := i + 1; j < len(files); j++ {
-			if f(files[i].Name(), files[j].Name()) == 1 {
+			nextFileName = files[j].Name()
+
+			if strings.HasPrefix(currentFileName, ".") && len(currentFileName) > 1 {
+				currentFileName = currentFileName[1:]
+			}
+			if strings.HasPrefix(nextFileName, ".") && len(nextFileName) > 1 {
+				nextFileName = nextFileName[1:]
+			}
+			if f(strings.ToLower(currentFileName), strings.ToLower(nextFileName)) == 1 {
 				files[i], files[j] = files[j], files[i]
 			}
 		}

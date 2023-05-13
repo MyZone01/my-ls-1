@@ -73,7 +73,7 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 
 	// Print the entries
 	var lastFileName string
-	fmt.Println("total ", 12)
+	//fmt.Println("total ", 12)
 	for i, entry := range entries {
 		fileName := entry.Name()
 
@@ -84,6 +84,7 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 
 		if longFormat {
 			// Print long listing format
+			OrderFiles(entries,strings.Compare)
 			printLongFormat(entry)
 		} else {
 			// Print the file/directory name
@@ -116,7 +117,7 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 					}
 					fmt.Printf("%s\033[%dG%v", line, curColAt+1, fileName)
 				}
-				if len(fileName) > len(lastFileName) {
+				if len(fileName) > len(lastFileName) && len(fileName) > temp {
 					temp = len(fileName) + 2
 				}
 				lastFileName = fileName
