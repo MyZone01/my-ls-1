@@ -1,8 +1,11 @@
 package my_ls
 
 import (
+	"math"
 	"os"
 	"strings"
+	"syscall"
+	"unsafe"
 )
 
 func GetFlags() (bool, bool, bool, bool, bool, string) {
@@ -30,6 +33,40 @@ func GetFlags() (bool, bool, bool, bool, bool, string) {
 		}
 	}
 	return showAll, longFormat, recursive, reverse, sortByTime, dirPath
+}
+
+func GetTerminalWidth() int {
+	winsize := struct {
+		Row    uint16
+		Col    uint16
+		Xpixel uint16
+		Ypixel uint16
+	}{}
+	_, _, _ = syscall.Syscall(
+		syscall.SYS_IOCTL,
+		uintptr(syscall.Stdout),
+		uintptr(syscall.TIOCGWINSZ),
+		uintptr(unsafe.Pointer(&winsize)))
+
+	return int(winsize.Col)
+}
+
+func GetColNumber(width int, files []os.DirEntry) int {
+	var biggestFileName int
+	for _, file := range files {
+		if len(file.Name()) > biggestFileName {
+			biggestFileName = len(file.Name())
+		}
+	}
+	return int(math.Floor(float64(width) / float64(biggestFileName + 2)))
+}
+
+func GetOutputLength(files []os.DirEntry) int {
+	var outputLength int
+	for _, file := range files {
+		outputLength += len(file.Name())
+	}
+	return outputLength + (len(files)-1)*2
 }
 
 func joinPath(elements ...string) string {

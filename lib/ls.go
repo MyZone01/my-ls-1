@@ -22,6 +22,12 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 		return
 	}
 
+	width := GetTerminalWidth()
+	size := GetOutputLength(entries)
+	var curColAt = 1
+	var curLinAt = 1
+	var nCol, temp int
+
 	// Sort the entries based on the specified options
 	if sortByTime {
 		sortByModificationTime(entries)
@@ -33,22 +39,8 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 	}
 
 	if showAll {
-		if longFormat {
-			currentFolderInfos, err := os.Stat(currentFolderName)
-			if err != nil {
-				fmt.Println("Error getting file info:", err)
-			}
-			printLongFormat(currentFolderName, currentFolderInfos)
-
-			parentFolderInfos, err := os.Stat(parentFolderName)
-			if err != nil {
-				fmt.Println("Error getting file info:", err)
-			}
-
-			printLongFormat(parentFolderName, parentFolderInfos)
-		} else {
-			fmt.Printf("%s %s ", currentFolderName, parentFolderName)
-		}
+		printDotDir(longFormat)
+		curColAt = 8
 	}
 
 	// Print the entries
@@ -72,11 +64,21 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 			printLongFormat(fileName, entryInfo)
 		} else {
 			// Print the file/directory name
-			fmt.Print(fileName)
+			fileName := entry.Name()
+			if width-size >= 0 {
+				fmt.Printf("\033[%dG%v", curColAt, fileName)
+				curColAt += len(fileName) + 2
+			} else {
+				maxCols := GetColNumber(width, entries)
+				l := (len(fileName) + maxCols) / maxCols
+				line := ""
+				if strings.Contains(fileName, " ") {
+					fileName = "'" + fileName + "'"
+				}
+				printShortFormat(fileName, i, l, line, curColAt, temp, nCol, curLinAt)
+			}
 			if i == len(entries)-1 {
 				fmt.Println()
-			} else {
-				fmt.Print(" ")
 			}
 		}
 
@@ -101,6 +103,25 @@ func reverseEntries(entries []os.DirEntry) []os.DirEntry {
 	return reversed
 }
 
+func printDotDir(longFormat bool) {
+	if longFormat {
+		currentFolderInfos, err := os.Stat(currentFolderName)
+		if err != nil {
+			fmt.Println("Error getting file info:", err)
+		}
+		printLongFormat(currentFolderName, currentFolderInfos)
+
+		parentFolderInfos, err := os.Stat(parentFolderName)
+		if err != nil {
+			fmt.Println("Error getting file info:", err)
+		}
+
+		printLongFormat(parentFolderName, parentFolderInfos)
+	} else {
+		fmt.Printf("%s  %s   ", currentFolderName, parentFolderName)
+	}
+}
+
 // SortByModificationTime sorts an array of fs.DirEntry objects by modification time.
 func sortByModificationTime(entries []os.DirEntry) {
 	n := len(entries)
@@ -123,9 +144,40 @@ func sortByModificationTime(entries []os.DirEntry) {
 	}
 }
 
+func printShortFormat(fileName string, i int, l int, lin string, curColAt int, temp int, nCol int, curLinAt int) int {
+	if i < l {
+		fmt.Printf("%v", fileName)
+		if i < l-1 {
+			fmt.Println()
+		}
+	} else {
+
+		if i%l == 0 {
+			lin = fmt.Sprintf("\033[%vA", l-1)
+			curColAt = temp + nCol
+			nCol += temp
+			temp = len(fileName) + 2
+			curLinAt = 1
+		} else {
+			lin = "\033[1B"
+		}
+		fmt.Printf("%s\033[%dG%v", lin, curColAt+1, fileName)
+	}
+	if len(fileName) > temp {
+		temp = len(fileName) + 2
+
+	}
+
+	curLinAt++
+	return curLinAt
+}
+
 func printLongFormat(name string, entry os.FileInfo) {
 	// Get the file/directory mode and permissions
 	permissions := entry.Mode().String()
+
+	// Get the number of hard links
+	numHardLinks := entry.Sys().(*syscall.Stat_t).Nlink
 
 	// Get the file/directory size
 	size := entry.Size()
@@ -148,5 +200,5 @@ func printLongFormat(name string, entry os.FileInfo) {
 	}
 
 	// Print the long format
-	fmt.Printf("%s %s %s %8d %s %s\n", permissions, owner.Name, group.Name, size, modTime, name)
+	fmt.Printf("%s %d %s %s %8d %s %s\n", permissions, numHardLinks, owner.Name, group.Name, size, modTime, name)
 }
