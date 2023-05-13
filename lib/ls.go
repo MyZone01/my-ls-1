@@ -2,6 +2,7 @@ package my_ls
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"os/user"
 	"strconv"
@@ -73,7 +74,26 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 
 	// Print the entries
 	var lastFileName string
-	//fmt.Println("total ", 12)
+	var block int
+	if longFormat {
+
+		for _, v := range entries {
+			if !showAll && strings.HasPrefix(v.Name(), ".") || (v.Name() == "." || v.Name() == "..") {
+				continue
+			} 
+			if v.Size() < 4096 {
+				continue
+			}
+			if showAll {
+				block += int(math.Ceil(float64(v.Size()+511) / 512))
+			}else {
+				block += int(math.Floor(float64(v.Size()+511) / 512))
+			}
+			
+		}
+		fmt.Printf("total %v\n", block)
+
+	}
 	for i, entry := range entries {
 		fileName := entry.Name()
 
@@ -84,7 +104,7 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 
 		if longFormat {
 			// Print long listing format
-			OrderFiles(entries,strings.Compare)
+			OrderFiles(entries, strings.Compare)
 			printLongFormat(entry)
 		} else {
 			// Print the file/directory name
