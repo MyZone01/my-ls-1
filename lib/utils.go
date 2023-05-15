@@ -57,7 +57,7 @@ func GetColNumber(width int, files []os.FileInfo) int {
 			biggestFileName = len(file.Name())
 		}
 	}
-	return int(math.Floor(float64(width) / float64(biggestFileName+2)))
+	return int(math.Floor(float64(width) / float64(biggestFileName)))
 }
 
 func GetOutputLength(files []os.FileInfo) int {
