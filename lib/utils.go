@@ -1,37 +1,47 @@
 package my_ls
 
 import (
-	"math"
 	"os"
 	"syscall"
 	"unsafe"
 )
 
-func GetFlags() (bool, bool, bool, bool, bool, string) {
-	flags := os.Args[1:]
-	var showAll, longFormat, recursive, reverse, sortByTime bool
-	dirPath := "."
-	for _, flag := range flags {
+type Flag struct {
+	ShowAll    bool
+	LongFormat bool
+	Recursive  bool
+	Reverse    bool
+	SortByTime bool
+}
+
+func GetFlags() (Flag, []string) {
+	args := os.Args[1:]
+	flags := Flag{}
+	dirPath := []string{}
+	for _, flag := range args {
 		if len(flag) == 2 && flag[0] == '-' {
 			switch flag {
 			case "-a":
-				showAll = true
+				flags.ShowAll = true
 			case "-l":
-				longFormat = true
+				flags.LongFormat = true
 			case "-R":
-				recursive = true
+				flags.Recursive = true
 			case "-r":
-				reverse = true
+				flags.Reverse = true
 			case "-t":
-				sortByTime = true
+				flags.SortByTime = true
 			default:
-				dirPath = flag
+				dirPath = append(dirPath, flag)
 			}
 		} else {
-			dirPath = flag
+			dirPath = append(dirPath, flag)
 		}
 	}
-	return showAll, longFormat, recursive, reverse, sortByTime, dirPath
+	if len(dirPath) == 0 {
+		dirPath = append(dirPath, ".")
+	}
+	return flags, dirPath
 }
 
 func GetTerminalWidth() int {
@@ -57,7 +67,7 @@ func GetColNumber(width int, files []os.FileInfo) int {
 			biggestFileName = len(file.Name())
 		}
 	}
-	return int(math.Floor(float64(width) / float64(biggestFileName)))
+	return int(width / biggestFileName)
 }
 
 func GetOutputLength(files []os.FileInfo) int {
@@ -65,7 +75,7 @@ func GetOutputLength(files []os.FileInfo) int {
 	for _, file := range files {
 		outputLength += len(file.Name())
 	}
-	return outputLength + (len(files)-1)*2
+	return outputLength
 }
 
 func OrderFiles(files []os.FileInfo, f func(a, b string) int) {
@@ -73,6 +83,16 @@ func OrderFiles(files []os.FileInfo, f func(a, b string) int) {
 		for j := i + 1; j < len(files); j++ {
 			if f(files[i].Name(), files[j].Name()) == 1 {
 				files[i], files[j] = files[j], files[i]
+			}
+		}
+	}
+}
+
+func OrderFileName(fileNames []string, f func(a, b string) int) {
+	for i := 0; i < len(fileNames); i++ {
+		for j := i + 1; j < len(fileNames); j++ {
+			if f(fileNames[i], fileNames[j]) == 1 {
+				fileNames[i], fileNames[j] = fileNames[j], fileNames[i]
 			}
 		}
 	}

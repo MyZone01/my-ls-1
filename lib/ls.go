@@ -14,7 +14,7 @@ var (
 	parentFolderName  = ".."
 )
 
-func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTime bool) {
+func ListFiles(dirPath string, flags Flag) {
 	// Read the directory entries
 	_dir, err := os.Open(dirPath)
 	if err != nil {
@@ -28,7 +28,7 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 		return
 	}
 	OrderFiles(entries, strings.Compare)
-	if showAll {
+	if flags.ShowAll {
 		_dotEntries := []os.FileInfo{}
 		_entries := []os.FileInfo{}
 		currentFolderInfos, err := os.Lstat(currentFolderName)
@@ -54,12 +54,12 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 	}
 
 	// Sort the entries based on the specified options
-	if sortByTime {
+	if flags.SortByTime {
 		sortByModificationTime(entries)
 	}
 
 	// Reverse the entries
-	if reverse {
+	if flags.Reverse {
 		entries = reverseEntries(entries)
 	}
 
@@ -77,12 +77,12 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 	for i, entry := range entries {
 		fileName := entry.Name()
 
-		// Skip hidden files if the showAll flag is not set
-		if !showAll && strings.HasPrefix(fileName, ".") {
+		// Skip hidden files if the flags.ShowAll flag is not set
+		if !flags.ShowAll && strings.HasPrefix(fileName, ".") {
 			continue
 		}
 
-		if longFormat {
+		if flags.LongFormat {
 			// Print long listing format
 			printLongFormat(entry)
 		} else {
@@ -116,7 +116,7 @@ func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTi
 					}
 					fmt.Printf("%s\033[%dG%v", line, curColAt+1, fileName)
 				}
-				if len(fileName) > len(lastFileName) {
+				if len(fileName) > len(lastFileName) && len(fileName) >= temp {
 					temp = len(fileName) + 2
 				}
 				lastFileName = fileName
