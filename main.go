@@ -9,10 +9,8 @@ import (
 func main() {
 	args := os.Args[1:]
 
-	f := os.DirFS(args[0])
-
 	// files := fsys.List(f, fsys.NormalOutput)
-	utils.RecursivePrint(f)
+	utils.RecursivePrint(args[0])
 	// utils.PrintFiles(files)
 	fmt.Println()
 }

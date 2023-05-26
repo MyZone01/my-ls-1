@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${fileDirname}",
-            "args": ["."],
+            "args": ["/home/student/myTest"],
             "console": "externalTerminal",
             "stopOnEntry": false
         }
