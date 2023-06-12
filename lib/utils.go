@@ -1,6 +1,7 @@
 package my_ls
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"strings"
@@ -51,14 +52,57 @@ func GetTerminalWidth() int {
 	return int(winsize.Col)
 }
 
-func GetColNumber(width int, files []os.FileInfo) int {
+func GetColNumber(width int, files []os.FileInfo) (int, []int) {
 	var biggestFileName int
+	filesLength := []int{}
 	for _, file := range files {
 		if len(file.Name()) > biggestFileName {
 			biggestFileName = len(file.Name())
 		}
+		filesLength = append(filesLength, len(file.Name())+2)
 	}
-	return int(math.Floor(float64(width) / float64(biggestFileName+2)))
+	numberOfColumn := int(math.Ceil(float64(width) / float64(biggestFileName)))
+	numberOfLine := int(math.Ceil(float64(len(files)) / float64(numberOfColumn)))
+	longestLine, tempMaxWordColumn := GetLongestLine(numberOfLine, numberOfColumn, filesLength)
+	maxWordColumn := []int{}
+	for longestLine-2 < width {
+		maxWordColumn = tempMaxWordColumn
+		numberOfColumn++
+		numberOfLine = int(math.Ceil(float64(len(files)) / float64(numberOfColumn)))
+		longestLine, tempMaxWordColumn = GetLongestLine(numberOfLine, numberOfColumn, filesLength)
+	}
+	numberOfColumn--
+	return numberOfColumn, maxWordColumn
+}
+
+func PrintFiles(files []os.FileInfo) {
+	fmt.Println()
+	for _, file := range files {
+		fmt.Print(file.Name() + " ")
+	}
+	fmt.Println()
+}
+
+func GetLongestLine(numberOfLine int, numberOfColumn int, filesLength []int) (int, []int) {
+	longestLine := 0
+	maxWordColumn := []int{}
+	for i := 0; i < numberOfColumn; i++ {
+		actual := 0
+		longestWordColumn := 0
+		for j := 0; j < numberOfLine; j++ {
+			index := (numberOfLine * i) + j
+			if index > len(filesLength)-1 {
+				break
+			}
+			actual = filesLength[index]
+			if actual > longestWordColumn {
+				longestWordColumn = actual
+			}
+		}
+		maxWordColumn = append(maxWordColumn, longestWordColumn)
+		longestLine += longestWordColumn
+	}
+	return longestLine, maxWordColumn
 }
 
 func GetOutputLength(files []os.FileInfo) int {
@@ -88,4 +132,20 @@ func OrderFiles(files []os.FileInfo, f func(a, b string) int) {
 			}
 		}
 	}
+}
+
+func SortByFileName(files []os.FileInfo) []os.FileInfo {
+	n := len(files)
+	swapped := true
+	for swapped {
+		swapped = false
+		for i := 1; i < n; i++ {
+			if files[i-1].Name() > files[i].Name() {
+				files[i-1], files[i] = files[i], files[i-1]
+				swapped = true
+			}
+		}
+		n--
+	}
+	return files
 }
