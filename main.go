@@ -11,7 +11,6 @@ import (
 func main() {
 	// Parse command line flags
 	flags, allPaths := my_ls.GetFlags()
-	my_ls.OrderFileName(allPaths, strings.Compare)
 
 	// Perform the directory listing
 	for i, dirPath := range allPaths {
