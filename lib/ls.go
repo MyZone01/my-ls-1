@@ -28,7 +28,10 @@ func ListFiles(dirPath string, flags Flag) {
 		fmt.Println("Error reading directory:", err)
 		return
 	}
-
+	if len(entries) == 0 {
+		return
+	}
+	OrderFiles(entries, strings.Compare)
 	if flags.ShowAll {
 		_dotEntries := []os.FileInfo{}
 		_entries := []os.FileInfo{}

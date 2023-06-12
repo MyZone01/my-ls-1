@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+
 func main() {
 	// Parse command line flags
 	flags, allPaths := my_ls.GetFlags()
