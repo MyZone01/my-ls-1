@@ -9,10 +9,16 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
+<<<<<<< HEAD
             "program": "${fileDirname}",
             "args": ["/home/student/myTest"],
             "console": "externalTerminal",
             "stopOnEntry": false
+=======
+            "args": ["-R",".git/hooks"],
+            "console": "externalTerminal",
+            "program": "${fileDirname}"
+>>>>>>> origin/main
         }
     ]
 }
