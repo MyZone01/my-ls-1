@@ -2,6 +2,8 @@ package my_ls
 
 import (
 	"fmt"
+	"io/fs"
+	"math"
 	"os"
 	"os/user"
 	"strconv"
@@ -14,85 +16,113 @@ var (
 	parentFolderName  = ".."
 )
 
-func ListFiles(dirPath string, showAll, longFormat, recursive, reverse, sortByTime bool) {
+func ListFiles(dirPath string, flags Flag) {
 	// Read the directory entries
-	entries, err := os.ReadDir(dirPath)
+	_dir, err := os.Open(dirPath)
 	if err != nil {
 		fmt.Println("Error reading directory:", err)
 		return
 	}
 
+	entries, err := _dir.Readdir(-1)
+	if err != nil {
+		fmt.Println("Error reading directory:", err)
+		return
+	}
+	if len(entries) == 0 {
+		return
+	}
+	OrderFiles(entries, strings.Compare)
+	if flags.ShowAll {
+		_dotEntries := []os.FileInfo{}
+		_entries := []os.FileInfo{}
+		currentFolderInfos, err := os.Lstat(currentFolderName)
+		if err != nil {
+			fmt.Println("Error getting file info:", err)
+		}
+		_dotEntries = append(_dotEntries, currentFolderInfos)
+
+		parentFolderInfos, err := os.Lstat(parentFolderName)
+		if err != nil {
+			fmt.Println("Error getting file info:", err)
+		}
+		_dotEntries = append(_dotEntries, parentFolderInfos)
+
+		for i := 0; i < len(entries); i++ {
+			if strings.HasPrefix(entries[i].Name(), ".") {
+				_dotEntries = append(_dotEntries, entries[i])
+			} else {
+				_entries = append(_entries, entries[i])
+			}
+		}
+		entries = append(_dotEntries, _entries...)
+	}
+
 	// Sort the entries based on the specified options
-	if sortByTime {
+	if flags.SortByTime {
 		sortByModificationTime(entries)
 	}
 
 	// Reverse the entries
-	if reverse {
+	if flags.Reverse {
 		entries = reverseEntries(entries)
 	}
 
-	if showAll {
-		if longFormat {
-			currentFolderInfos, err := os.Stat(currentFolderName)
-			if err != nil {
-				fmt.Println("Error getting file info:", err)
+	if flags.LongFormat {
+		var TotalSize int
+		for _, v := range entries {
+			if !flags.ShowAll && strings.HasPrefix(v.Name(), ".") || (v.Name() == "." || v.Name() == "..") {
+				continue
 			}
-			printLongFormat(currentFolderName, currentFolderInfos)
-
-			parentFolderInfos, err := os.Stat(parentFolderName)
-			if err != nil {
-				fmt.Println("Error getting file info:", err)
+			if v.Size() < 4096 {
+				continue
 			}
 
-			printLongFormat(parentFolderName, parentFolderInfos)
-		} else {
-			fmt.Printf("%s %s ", currentFolderName, parentFolderName)
+			TotalSize += int((v.Size() + 4096 - 1) / 4096 * (4096 / 1024))
 		}
-	}
+		fmt.Printf("total %v\n", TotalSize)
+		for _, entry := range entries {
+			fileName := entry.Name()
 
-	// Print the entries
-	for i, entry := range entries {
-		fileName := entry.Name()
-
-		// Skip hidden files if the showAll flag is not set
-		if !showAll && strings.HasPrefix(fileName, ".") {
-			continue
-		}
-
-		if longFormat {
-			// Get the file/directory infos
-			entryInfo, err := entry.Info()
-			if err != nil {
-				fmt.Println("Get the file infos")
-				return
+			if !flags.ShowAll && strings.HasPrefix(fileName, ".") {
+				continue
 			}
-
-			// Print long listing format
-			printLongFormat(fileName, entryInfo)
-		} else {
-			// Print the file/directory name
-			fmt.Print(fileName)
-			if i == len(entries)-1 {
-				fmt.Println()
-			} else {
-				fmt.Print(" ")
-			}
+			OrderFiles(entries, strings.Compare)
+			printLongFormat(entry)
 		}
-
-		// Recursively list subdirectories if the recursive flag is set
-		if recursive && entry.IsDir() {
-			subDirPath := joinPath(dirPath, fileName)
-			fmt.Println("\n" + subDirPath + ":")
-			ListFiles(subDirPath, showAll, longFormat, recursive, reverse, sortByTime)
-		}
+	} else {
+		entries := SortByFileName(entries)
+		width := GetTerminalWidth()
+		numberOfColumn, maxWordColumn := GetColNumber(width, entries)
+		numberOfLine := int(math.Ceil(float64(len(entries)) / float64(numberOfColumn)))
+		printShortFormat(numberOfLine, numberOfColumn, entries, maxWordColumn)
 	}
 }
 
-// Reverse the entries
-func reverseEntries(entries []os.DirEntry) []os.DirEntry {
+func printShortFormat(numberOfLine int, numberOfColumn int, entries []fs.FileInfo, maxWordColumn []int) {
+	for i := 0; i < numberOfLine; i++ {
+		for j := 0; j < numberOfColumn; j++ {
+			index := (numberOfLine * j) + i
+
+			if index > len(entries)-1 {
+				break
+			}
+
+			fmt.Print(entries[index].Name())
+			if j < numberOfColumn-1 {
+				rest := maxWordColumn[j] - len(entries[index].Name())
+				for i := 0; i < rest; i++ {
+					fmt.Print(" ")
+				}
+			}
+		}
+		fmt.Println()
+	}
+}
+
+func reverseEntries(entries []os.FileInfo) []os.FileInfo {
 	length := len(entries)
-	reversed := make([]os.DirEntry, length)
+	reversed := make([]os.FileInfo, length)
 
 	for i, entry := range entries {
 		reversed[length-i-1] = entry
@@ -101,20 +131,14 @@ func reverseEntries(entries []os.DirEntry) []os.DirEntry {
 	return reversed
 }
 
-// SortByModificationTime sorts an array of fs.DirEntry objects by modification time.
-func sortByModificationTime(entries []os.DirEntry) {
+func sortByModificationTime(entries []os.FileInfo) {
 	n := len(entries)
 	swapped := true
 
 	for swapped {
 		swapped = false
 		for i := 1; i < n; i++ {
-			// Compare modification time of current entry and previous entry
-			currentInfo, _ := entries[i].Info()
-			previousInfo, _ := entries[i-1].Info()
-
-			if currentInfo.ModTime().Before(previousInfo.ModTime()) {
-				// Swap entries if the current one is older
+			if entries[i].ModTime().After(entries[i-1].ModTime()) {
 				entries[i], entries[i-1] = entries[i-1], entries[i]
 				swapped = true
 			}
@@ -123,30 +147,39 @@ func sortByModificationTime(entries []os.DirEntry) {
 	}
 }
 
-func printLongFormat(name string, entry os.FileInfo) {
-	// Get the file/directory mode and permissions
+func printLongFormat(entry os.FileInfo) {
+	//Get the file name
+	name := entry.Name()
+
 	permissions := entry.Mode().String()
 
-	// Get the file/directory size
+	if permissions[0] == 'L' {
+		dst, _ := os.Readlink(name)
+		dstInfo, err := os.Stat(dst)
+		if err != nil {
+			fmt.Println("Error getting file info:", err)
+		}
+		name = name + " -> " + dstInfo.Name()
+		permissions = string(append([]rune{'l'}, []rune(permissions[1:])...))
+	}
+
+	numHardLinks := entry.Sys().(*syscall.Stat_t).Nlink
+
 	size := entry.Size()
 
-	// Get the file/directory modification time
 	modTime := entry.ModTime().Format("Jan _2 15:04")
 
-	// Get the file/directory owner
 	owner, err := user.LookupGroupId(strconv.Itoa(int(entry.Sys().(*syscall.Stat_t).Uid)))
 	if err != nil {
 		fmt.Printf("Error retrieving owner information for %s: %s\n", name, err)
 		return
 	}
 
-	// Get the file/directory owner's group
 	group, err := user.LookupGroupId(strconv.Itoa(int(entry.Sys().(*syscall.Stat_t).Gid)))
 	if err != nil {
 		fmt.Printf("Error retrieving group information for %s: %s\n", name, err)
 		return
 	}
 
-	// Print the long format
-	fmt.Printf("%s %s %s %8d %s %s\n", permissions, owner.Name, group.Name, size, modTime, name)
+	fmt.Printf("%s %2d %s %s %5d %s %s\n", permissions, numHardLinks, owner.Name, group.Name, size, modTime, name)
 }
