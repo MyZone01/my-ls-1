@@ -2,6 +2,7 @@ package my_ls
 
 import (
 	"fmt"
+	"io/fs"
 	"math"
 	"os"
 	"os/user"
@@ -68,7 +69,7 @@ func ListFiles(dirPath string, flags Flag) {
 	}
 
 	if flags.LongFormat {
-		var block int
+		var TotalSize int
 		for _, v := range entries {
 			if !flags.ShowAll && strings.HasPrefix(v.Name(), ".") || (v.Name() == "." || v.Name() == "..") {
 				continue
@@ -77,9 +78,9 @@ func ListFiles(dirPath string, flags Flag) {
 				continue
 			}
 
-			block += int(math.Ceil(float64(v.Size()) / float64(v.Sys().(*syscall.Stat_t).Blocks)))
+			TotalSize += int((v.Size() + 4096 - 1) / 4096 * (4096 / 1024))
 		}
-		fmt.Printf("total %v\n", block)
+		fmt.Printf("total %v\n", TotalSize)
 		for _, entry := range entries {
 			fileName := entry.Name()
 
@@ -94,24 +95,28 @@ func ListFiles(dirPath string, flags Flag) {
 		width := GetTerminalWidth()
 		numberOfColumn, maxWordColumn := GetColNumber(width, entries)
 		numberOfLine := int(math.Ceil(float64(len(entries)) / float64(numberOfColumn)))
-		for i := 0; i < numberOfLine; i++ {
-			for j := 0; j < numberOfColumn; j++ {
-				index := (numberOfLine * j) + i
+		printShortFormat(numberOfLine, numberOfColumn, entries, maxWordColumn)
+	}
+}
 
-				if index > len(entries)-1 {
-					break
-				}
+func printShortFormat(numberOfLine int, numberOfColumn int, entries []fs.FileInfo, maxWordColumn []int) {
+	for i := 0; i < numberOfLine; i++ {
+		for j := 0; j < numberOfColumn; j++ {
+			index := (numberOfLine * j) + i
 
-				fmt.Print(entries[index].Name())
-				if j < numberOfColumn-1 {
-					rest := maxWordColumn[j] - len(entries[index].Name())
-					for i := 0; i < rest; i++ {
-						fmt.Print(" ")
-					}
+			if index > len(entries)-1 {
+				break
+			}
+
+			fmt.Print(entries[index].Name())
+			if j < numberOfColumn-1 {
+				rest := maxWordColumn[j] - len(entries[index].Name())
+				for i := 0; i < rest; i++ {
+					fmt.Print(" ")
 				}
 			}
-			fmt.Println()
 		}
+		fmt.Println()
 	}
 }
 
@@ -140,32 +145,6 @@ func sortByModificationTime(entries []os.FileInfo) {
 		}
 		n--
 	}
-}
-
-func printShortFormat(fileName string, i int, l int, lin string, curColAt int, temp int, nCol int, curLinAt int) (int, int, int) {
-	if i < l {
-		fmt.Printf("%v", fileName)
-		if i < l-1 {
-			fmt.Println()
-		}
-	} else {
-		if i%l == 0 {
-			lin = fmt.Sprintf("\033[%vA", l-1)
-			curColAt = temp + nCol
-			nCol += temp
-			temp = len(fileName) + 2
-			curLinAt = 1
-		} else {
-			lin = "\033[1B"
-		}
-		fmt.Printf("%s\033[%dG%v", lin, curColAt+1, fileName)
-	}
-	if len(fileName) > temp {
-		temp = len(fileName) + 2
-	}
-
-	curLinAt++
-	return curLinAt, curColAt, temp
 }
 
 func printLongFormat(entry os.FileInfo) {
