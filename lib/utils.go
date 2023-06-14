@@ -75,14 +75,16 @@ func GetColNumber(width int, files []os.FileInfo) (int, []int) {
 	numberOfColumn := int(math.Ceil(float64(width) / float64(biggestFileName)))
 	numberOfLine := int(math.Ceil(float64(len(files)) / float64(numberOfColumn)))
 	longestLine, tempMaxWordColumn := GetLongestLine(numberOfLine, numberOfColumn, filesLength)
-	maxWordColumn := []int{}
-	for longestLine-2 < width {
-		maxWordColumn = tempMaxWordColumn
-		numberOfColumn++
-		numberOfLine = int(math.Ceil(float64(len(files)) / float64(numberOfColumn)))
-		longestLine, tempMaxWordColumn = GetLongestLine(numberOfLine, numberOfColumn, filesLength)
+	maxWordColumn := tempMaxWordColumn
+	if numberOfLine != 1 {
+		for longestLine-2 < width {
+			maxWordColumn = tempMaxWordColumn
+			numberOfColumn++
+			numberOfLine = int(math.Ceil(float64(len(files)) / float64(numberOfColumn)))
+			longestLine, tempMaxWordColumn = GetLongestLine(numberOfLine, numberOfColumn, filesLength)
+		}
+		numberOfColumn--
 	}
-	numberOfColumn--
 	return numberOfColumn, maxWordColumn
 }
 

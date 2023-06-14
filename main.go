@@ -10,10 +10,8 @@ import (
 
 
 func main() {
-	// Parse command line flags
 	flags, allPaths := my_ls.GetFlags()
 
-	// Perform the directory listing
 	for i, dirPath := range allPaths {
 		if len(allPaths) > 1 {
 			if i != 0 {
